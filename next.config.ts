@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
+import { resolve } from "node:path";
 
 const nextConfig: NextConfig = {
   experimental: {
     authInterrupts: true,
+  },
+  turbopack: {
+    root: resolve(__dirname),
   },
 };
 
