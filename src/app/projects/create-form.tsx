@@ -96,7 +96,7 @@ export function CreateProjectForm() {
       return;
     }
 
-    router.push(`/projects?project=${data.project.publicId}`);
+    router.push(`/projects?project=${data.project.publicId}&created=1`);
   }
 
   return (

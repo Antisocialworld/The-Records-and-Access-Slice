@@ -23,6 +23,7 @@ export default async function ProjectsPage({
   const publicId =
     typeof params.project === "string" ? params.project : undefined;
   const deleteView = params.delete === "1";
+  const justCreated = params.created === "1";
 
   if (newView) {
     return <CreateProjectForm />;
@@ -36,7 +37,7 @@ export default async function ProjectsPage({
     if (deleteView) {
       return <DeleteConfirm project={project} />;
     }
-    return <ProjectDetail project={project} />;
+    return <ProjectDetail project={project} showCreatedBanner={justCreated} />;
   }
 
   const projects = await listProjectsForUser(user.id);

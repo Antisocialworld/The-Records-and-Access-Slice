@@ -43,7 +43,7 @@ const btnDanger: React.CSSProperties = {
   color: "#dc2626",
 };
 
-export function ProjectDetail({ project }: { project: Project }) {
+export function ProjectDetail({ project, showCreatedBanner }: { project: Project; showCreatedBanner?: boolean }) {
   return (
     <div style={pageWrap}>
       <div style={card}>
@@ -54,6 +54,11 @@ export function ProjectDetail({ project }: { project: Project }) {
           </div>
           <SignOutButton />
         </div>
+        {showCreatedBanner && (
+          <div style={{ padding: "0.65rem 0.85rem", fontSize: "0.85rem", color: "#065f46", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "8px", marginBottom: "1rem" }}>
+            Project created successfully.
+          </div>
+        )}
         <div style={{ padding: "1rem", background: "#f9fafb", borderRadius: "8px", border: "1px solid #e5e7eb", marginBottom: "1.5rem" }}>
           <div style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "0.25rem" }}>Created</div>
           <div style={{ fontSize: "0.95rem", color: "#111827", fontWeight: 500 }}>{new Date(project.createdAt).toLocaleString()}</div>
