@@ -1,0 +1,99 @@
+// Prisma schema — The Records and Access Slice (Assessment 4)
+//
+// Auth is PASSWORDLESS (see DOCUMENTATION.md §1): users are created on first
+// successful email-OTP verification, and may optionally set an "Everyday
+// Code" (a hashed passcode) for quick sign-in. This replaces Assessment 1's
+// email+password port by explicit override; there is intentionally no
+// `password` column.
+//
+// Project + AuditLog are the records slice.
+// targetPublicId on AuditLog is deliberately NOT a foreign key to Project:
+// a cascading FK would delete the audit trail when the project is deleted —
+// the exact evidence we must keep. A plain string keeps the trail intact.
+// It stores the user-facing publicId (not the DB id) at the time of the event.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  // Everyday Code: null means "not configured" (explicit, no sentinel value).
+  // Stored hashed with bcrypt, like a password. Failed attempts are tracked so
+  // the short keyspace can be locked out after repeated guesses.
+  everydayCodeHash           String?
+  everydayCodeUpdatedAt      DateTime?
+  everydayCodeFailedAttempts Int       @default(0)
+
+  sessions Session[]
+  projects Project[]
+  audits   AuditLog[]
+}
+
+// Email OTP codes. Keyed by email (not userId) so a code can be issued before
+// the account exists (first-time sign-in auto-provisions the User).
+model OtpCode {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  // Serves both the "latest active code for this email" lookup and the
+  // rate-limit window queries (recent requests for an email).
+  @@index([email, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  // public-facing token for URLs — never the DB id (PRD Requirement 2)
+  publicId  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  createdAt DateTime @default(now())
+
+  // Covers the scoped list query AND its createdAt sort in one index.
+  // (The userId-prefixed @@unique below already serves plain userId lookups,
+  // so a separate @@index([userId]) is redundant and omitted.)
+  @@index([userId, createdAt])
+  // publicId lookups are always scoped by user (SKILL-004)
+  @@unique([userId, publicId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  // plain string on purpose — see header comment. Stores the user-facing
+  // publicId at the time of the event, NOT a foreign key (cascading deletes
+  // must not remove audit evidence).
+  targetPublicId String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
+}
